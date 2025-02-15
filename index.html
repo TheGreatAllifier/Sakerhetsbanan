@@ -24,6 +24,28 @@
         const correctUsername = 'admin';
         const correctPassword = 'password123';
 
+        // Funktion för att skapa en slumpmässig sträng av siffror och bokstäver
+        function generateRandomCode(length) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+
+        // Kontrollera om användaren försöker komma åt en sida med fel kod
+        function checkForValidCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlCode = urlParams.get('code');
+            const sessionCode = sessionStorage.getItem('tempCode');
+
+            if (urlCode && urlCode !== sessionCode) {
+                // Om URL-koden inte matchar den sparade koden, omdirigera till startsidan
+                window.location.href = 'index.html';
+            }
+        }
+
         // Funktion för att hantera inloggningen
         document.getElementById('loginForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -33,13 +55,22 @@
 
             // Kontrollera om användarnamn och lösenord är rätt
             if (username === correctUsername && password === correctPassword) {
+                // Generera en slumpmässig kod
+                const tempCode = generateRandomCode(16); // Längd på den slumpmässiga koden
+                sessionStorage.setItem('tempCode', tempCode); // Spara koden i sessionStorage
+
+                // Omdirigera till en ny sida och lägg till koden i URL:en
                 alert('Loggar in på Databas/Dashboard');
-                window.location.href = "welcome.html"; // Omdirigera till en annan sida (t.ex. välkomstsida)
+                window.location.href = "welcome.html?code=" + tempCode; // Skickar den slumpmässiga koden i URL:en
             } else {
                 document.getElementById('errorMessage').textContent = 'Fel användarnamn eller lösenord';
             }
         });
+
+        // Kolla om URL-koden matchar den sparade koden i sessionStorage när sidan laddas
+        checkForValidCode();
     </script>
 
 </body>
 </html>
+
