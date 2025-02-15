@@ -1,1 +1,31 @@
-<h1>HI</h1>
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Välkommen</title>
+</head>
+<body>
+
+    <h2>Välkommen till din dashboard!</h2>
+    <p>Detta är en säker sida som endast kan nås om du är inloggad.</p>
+
+    <script>
+        // Kontrollera om användaren försöker komma åt sidan med fel kod
+        function checkForValidCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlCode = urlParams.get('code');
+            const sessionCode = sessionStorage.getItem('tempCode');
+
+            // Om URL-koden inte finns eller inte matchar den sparade koden, omdirigera till startsidan
+            if (!urlCode || urlCode !== sessionCode) {
+                window.location.href = 'index.html'; // Om dirigeras till startsidan om koden inte stämmer
+            }
+        }
+
+        // Kolla om URL-koden matchar den sparade koden i sessionStorage
+        checkForValidCode();
+    </script>
+
+</body>
+</html>
