@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enkelt Login System</title>
+</head>
+<body>
+
+    <h2>Logga in</h2>
+    <form id="loginForm">
+        <label for="username">Användarnamn:</label>
+        <input type="text" id="username" required>
+        <br><br>
+        <label for="password">Lösenord:</label>
+        <input type="password" id="password" required>
+        <br><br>
+        <button type="submit">Logga in</button>
+        <p id="errorMessage" style="color:red;"></p>
+    </form>
+
+    <script>
+        // Hårdkodade användaruppgifter för testning
+        const correctUsername = 'admin';
+        const correctPassword = 'password123';
+
+        // Funktion för att hantera inloggningen
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Kontrollera om användarnamn och lösenord är rätt
+            if (username === correctUsername && password === correctPassword) {
+                alert('Loggar in på Databas/Dashboard');
+                window.location.href = "welcome.html"; // Omdirigera till en annan sida (t.ex. välkomstsida)
+            } else {
+                document.getElementById('errorMessage').textContent = 'Fel användarnamn eller lösenord';
+            }
+        });
+    </script>
+
+</body>
+</html>
