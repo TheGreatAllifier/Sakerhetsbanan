@@ -1,42 +1,9 @@
 <!DOCTYPE html>
-<html lang="sv">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Välkommen</title>
-</head>
-<body>
-
-    <h2>Välkommen till din dashboard!</h2>
-    <p>Detta är en säker sida som endast kan nås om du är inloggad.</p>
-
-    <script>
-        // Kontrollera om användaren försöker komma åt sidan med fel kod
-        function checkForValidCode() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlCode = urlParams.get('code');
-            const sessionCode = sessionStorage.getItem('tempCode');
-
-            // Om URL-koden inte finns eller inte matchar den sparade koden, omdirigera till startsidan
-            if (!urlCode || urlCode !== sessionCode) {
-                window.location.href = 'index.html'; // Om dirigeras till startsidan om koden inte stämmer
-            }
-        }
-
-        // Kolla om URL-koden matchar den sparade koden i sessionStorage
-        checkForValidCode();
-    </script>
-
-</body>
-</html>
-
-
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload and Stack Images</title>
+    <title>Upload and Save to GitHub Gist</title>
 </head>
 <body>
     <input type="file" accept="image/png, image/jpeg, image/gif" id="fileInput">
@@ -44,30 +11,108 @@
     <div id="imageContainer"></div>
 
     <script>
-        function saveImage() {
+        const GITHUB_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN"; // Replace with your GitHub token
+        const GIST_ID = "YOUR_GIST_ID"; // Replace with your existing Gist ID
+
+        document.addEventListener("DOMContentLoaded", loadImages); // Load images on refresh
+
+        async function saveImage() {
             const fileInput = document.getElementById("fileInput");
-            const imageContainer = document.getElementById("imageContainer");
-
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    const img = document.createElement("img");
-                    img.src = e.target.result;
-                    img.style.maxWidth = "300px";
-                    img.style.marginTop = "10px";
-                    img.style.display = "block"; // Ensures images are stacked
-
-                    imageContainer.appendChild(img); // Append new image instead of replacing
-                };
-
-                reader.readAsDataURL(file);
-                fileInput.value = ""; // Clear file input
-            } else {
+            if (fileInput.files.length === 0) {
                 alert("Please select an image first!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                displayImage(base64Data); // Show image immediately
+                saveToLocal(base64Data); // Save locally
+                await uploadToGist(base64Data); // Save to GitHub Gist
+            };
+
+            reader.readAsDataURL(file);
+            fileInput.value = "";
+        }
+
+        function displayImage(src) {
+            const imageContainer = document.getElementById("imageContainer");
+            const img = document.createElement("img");
+            img.src = src;
+            img.style.maxWidth = "300px";
+            img.style.marginTop = "10px";
+            img.style.display = "block";
+            imageContainer.appendChild(img);
+        }
+
+        function saveToLocal(imageData) {
+            let images = JSON.parse(localStorage.getItem("savedImages")) || [];
+            images.push(imageData);
+            localStorage.setItem("savedImages", JSON.stringify(images));
+        }
+
+        async function uploadToGist(imageData) {
+            const apiUrl = `https://api.github.com/gists/${GIST_ID}`;
+
+            const response = await fetch(apiUrl, {
+                headers: { Authorization: `token ${GITHUB_TOKEN}` }
+            });
+
+            const existingGist = await response.json();
+            const fileName = `image_${Date.now()}.txt`;
+
+            const payload = {
+                description: "Uploaded images as Base64",
+                public: false,
+                files: {
+                    ...existingGist.files,
+                    [fileName]: { content: imageData }
+                }
+            };
+
+            await fetch(apiUrl, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": `token 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`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            console.log("Image saved to GitHub Gist!");
+        }
+
+        async function loadImages() {
+            const localImages = JSON.parse(localStorage.getItem("savedImages")) || [];
+            localImages.forEach(displayImage);
+
+            try {
+                const response = await fetch(`https://api.github.com/gists/cd6399787dd2c0664d5c81d81d60d7df`, {
+                    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+                });
+                const gist = await response.json();
+                Object.values(gist.files).forEach(file => {
+                    if (file.content.startsWith("data:image")) {
+                        displayImage(file.content);
+                    }
+                });
+            } catch (error) {
+                console.error("Error loading images from GitHub Gist:", error);
             }
         }
     </script>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCode = urlParams.get('code');
+    const sessionCode = sessionStorage.getItem('tempCode');
+
+    if (!urlCode || urlCode !== sessionCode) {
+        window.location.href = 'index.html'; // Omdirigera om koden saknas eller är fel
+    }
+</script>
+
 </body>
 </html>
