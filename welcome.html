@@ -29,3 +29,45 @@
 
 </body>
 </html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload and Stack Images</title>
+</head>
+<body>
+    <input type="file" accept="image/png, image/jpeg, image/gif" id="fileInput">
+    <button onclick="saveImage()">Save</button>
+    <div id="imageContainer"></div>
+
+    <script>
+        function saveImage() {
+            const fileInput = document.getElementById("fileInput");
+            const imageContainer = document.getElementById("imageContainer");
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    img.style.maxWidth = "300px";
+                    img.style.marginTop = "10px";
+                    img.style.display = "block"; // Ensures images are stacked
+
+                    imageContainer.appendChild(img); // Append new image instead of replacing
+                };
+
+                reader.readAsDataURL(file);
+                fileInput.value = ""; // Clear file input
+            } else {
+                alert("Please select an image first!");
+            }
+        }
+    </script>
+</body>
+</html>
