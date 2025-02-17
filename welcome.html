@@ -11,9 +11,6 @@
     <div id="imageContainer"></div>
 
     <script>
-        const GITHUB_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN"; // Replace with your GitHub token
-        const GIST_ID = "YOUR_GIST_ID"; // Replace with your existing Gist ID
-
         document.addEventListener("DOMContentLoaded", loadImages); // Load images on refresh
 
         async function saveImage() {
@@ -30,7 +27,7 @@
                 const base64Data = e.target.result;
                 displayImage(base64Data); // Show image immediately
                 saveToLocal(base64Data); // Save locally
-                await uploadToGist(base64Data); // Save to GitHub Gist
+                await uploadToServer(base64Data); // Send to backend server
             };
 
             reader.readAsDataURL(file);
@@ -53,66 +50,34 @@
             localStorage.setItem("savedImages", JSON.stringify(images));
         }
 
-        async function uploadToGist(imageData) {
-            const apiUrl = `https://api.github.com/gists/${GIST_ID}`;
-
-            const response = await fetch(apiUrl, {
-                headers: { Authorization: `token ${GITHUB_TOKEN}` }
-            });
-
-            const existingGist = await response.json();
-            const fileName = `image_${Date.now()}.txt`;
-
-            const payload = {
-                description: "Uploaded images as Base64",
-                public: false,
-                files: {
-                    ...existingGist.files,
-                    [fileName]: { content: imageData }
-                }
-            };
-
-            await fetch(apiUrl, {
-                method: "PATCH",
-                headers: {
-                    "Authorization": `token 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`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            });
-
-            console.log("Image saved to GitHub Gist!");
+        async function uploadToServer(imageData) {
+            try {
+                const response = await fetch("https://your-secure-backend.com/upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ imageData })
+                });
+                const data = await response.json();
+                console.log("Server Response:", data);
+            } catch (error) {
+                console.error("Error uploading image:", error);
+            }
         }
 
         async function loadImages() {
             const localImages = JSON.parse(localStorage.getItem("savedImages")) || [];
             localImages.forEach(displayImage);
-
-            try {
-                const response = await fetch(`https://api.github.com/gists/cd6399787dd2c0664d5c81d81d60d7df`, {
-                    headers: { Authorization: `token ${GITHUB_TOKEN}` }
-                });
-                const gist = await response.json();
-                Object.values(gist.files).forEach(file => {
-                    if (file.content.startsWith("data:image")) {
-                        displayImage(file.content);
-                    }
-                });
-            } catch (error) {
-                console.error("Error loading images from GitHub Gist:", error);
-            }
         }
     </script>
 
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlCode = urlParams.get('code');
-    const sessionCode = sessionStorage.getItem('tempCode');
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlCode = urlParams.get('code');
+        const sessionCode = sessionStorage.getItem('tempCode');
 
-    if (!urlCode || urlCode !== sessionCode) {
-        window.location.href = 'index.html'; // Omdirigera om koden saknas eller är fel
-    }
-</script>
-
+        if (!urlCode || urlCode !== sessionCode) {
+            window.location.href = 'index.html'; // Redirect if the code is missing or incorrect
+        }
+    </script>
 </body>
 </html>
