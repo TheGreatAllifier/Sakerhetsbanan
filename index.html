@@ -74,9 +74,10 @@
             const { createFFmpeg, fetchFile } = FFmpeg;
             const ffmpeg = createFFmpeg({ log: true });
 
+            // Load FFmpeg
             await ffmpeg.load();
             
-            // Load video file
+            // Write the video file into memory
             await ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoFile));
 
             // Set trim time and volume adjustment
@@ -84,7 +85,7 @@
             const endTime = parseFloat(endInput.value);
             const volume = parseFloat(volumeInput.value);
 
-            // Trim and adjust volume using FFmpeg commands
+            // FFmpeg command to trim video, adjust volume, and set resolution and frame rate
             await ffmpeg.run(
                 "-i", "input.mp4", 
                 "-ss", startTime.toString(), 
@@ -95,18 +96,22 @@
                 "output.mp4"
             );
 
-            // Retrieve output file
+            // Retrieve the processed video file from the memory
             const data = ffmpeg.FS("readFile", "output.mp4");
 
-            // Create a Blob and download the file
+            // Create a Blob and convert it to a URL for downloading
             const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
-            const videoURL = URL.createObjectURL(videoBlob);
+            const processedVideoURL = URL.createObjectURL(videoBlob);
 
-            // Create download link
+            // Create a temporary download link and trigger the download
             const downloadLink = document.createElement("a");
-            downloadLink.href = videoURL;
+            downloadLink.href = processedVideoURL;
             downloadLink.download = "edited_video.mp4";
-            downloadLink.click();
+
+            // Wait a bit for the video to be processed, then trigger the download
+            setTimeout(() => {
+                downloadLink.click();
+            }, 1000); // Small delay before clicking the download link
         });
     </script>
 </body>
