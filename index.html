@@ -1,76 +1,133 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enkelt Login System</title>
+    <title>Simple Video Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        video {
+            width: 80%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #video-link {
+            margin-top: 20px;
+            display: none;
+            font-size: 16px;
+            color: blue;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+    <h1>Simple Video Editor</h1>
+    <input type="file" id="upload" accept="video/*" />
+    <video id="video" controls></video>
+    <br>
+    <label for="start-time">Start Time (s):</label>
+    <input type="number" id="start-time" min="0" value="0">
+    <br>
+    <label for="end-time">End Time (s):</label>
+    <input type="number" id="end-time" min="0" value="10">
+    <br>
+    <label for="volume">Volume Adjustment:</label>
+    <input type="range" id="volume" min="0" max="2" step="0.1" value="1">
+    <br>
+    <button id="export">Export Video</button>
 
-    <h2>Logga in</h2>
-    <form id="loginForm">
-        <label for="username">Användarnamn:</label>
-        <input type="text" id="username" required>
-        <br><br>
-        <label for="password">Lösenord:</label>
-        <input type="password" id="password" required>
-        <br><br>
-        <button type="submit">Logga in</button>
-        <p id="errorMessage" style="color:red;"></p>
-    </form>
+    <!-- Link to preview the exported video -->
+    <p id="video-link" onclick="previewVideo()">Click here to preview and download your video</p>
 
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@latest/ffmpeg.min.js"></script>
     <script>
-        // Hårdkodade användaruppgifter för testning
-        const correctUsername = 'admin';
-        const correctPassword = 'password123';
+        const videoElement = document.getElementById("video");
+        const uploadInput = document.getElementById("upload");
+        const startInput = document.getElementById("start-time");
+        const endInput = document.getElementById("end-time");
+        const volumeInput = document.getElementById("volume");
+        const exportButton = document.getElementById("export");
+        const videoLink = document.getElementById("video-link");
 
-        // Funktion för att skapa en slumpmässig sträng av siffror och bokstäver
-        function generateRandomCode(length) {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return result;
-        }
+        let videoFile = null;
+        let videoURL = null;
 
-        // Kontrollera om användaren försöker komma åt en sida med fel kod
-        function checkForValidCode() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlCode = urlParams.get('code');
-            const sessionCode = sessionStorage.getItem('tempCode');
-
-            if (urlCode && urlCode !== sessionCode) {
-                // Om URL-koden inte matchar den sparade koden, omdirigera till startsidan
-                window.location.href = 'index.html';
-            }
-        }
-
-        // Funktion för att hantera inloggningen
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            // Kontrollera om användarnamn och lösenord är rätt
-            if (username === correctUsername && password === correctPassword) {
-                // Generera en slumpmässig kod
-                const tempCode = generateRandomCode(16); // Längd på den slumpmässiga koden
-                sessionStorage.setItem('tempCode', tempCode); // Spara koden i sessionStorage
-
-                // Omdirigera till en ny sida och lägg till koden i URL:en
-                alert('Loggar in på Databas/Dashboard');
-                window.location.href = "welcome.html?code=" + tempCode; // Skickar den slumpmässiga koden i URL:en
-            } else {
-                document.getElementById('errorMessage').textContent = 'Fel användarnamn eller lösenord';
+        // Handle file upload
+        uploadInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                videoFile = file;
+                videoURL = URL.createObjectURL(file);
+                videoElement.src = videoURL;
+                videoElement.load();
             }
         });
 
-        // Kolla om URL-koden matchar den sparade koden i sessionStorage när sidan laddas
-        checkForValidCode();
-    </script>
+        // Export video using ffmpeg.wasm
+        exportButton.addEventListener("click", async () => {
+            if (!videoFile) {
+                alert("Please upload a video first.");
+                return;
+            }
 
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: true });
+
+            await ffmpeg.load();
+            
+            // Load video file
+            await ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoFile));
+
+            // Set trim time and volume adjustment
+            const startTime = parseFloat(startInput.value);
+            const endTime = parseFloat(endInput.value);
+            const volume = parseFloat(volumeInput.value);
+
+            // Trim and adjust volume using FFmpeg commands
+            await ffmpeg.run(
+                "-i", "input.mp4", 
+                "-ss", startTime.toString(), 
+                "-to", endTime.toString(),
+                "-filter:a", `volume=${volume}`,
+                "-s", "1920x1080",  // Resize to 1080p
+                "-r", "30",          // Set 30fps
+                "output.mp4"
+            );
+
+            // Retrieve output file
+            const data = ffmpeg.FS("readFile", "output.mp4");
+
+            // Create a Blob and store it in a URL for preview
+            const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
+            const processedVideoURL = URL.createObjectURL(videoBlob);
+
+            // Show the export link and store the video URL in the link
+            videoLink.style.display = "block";
+            videoLink.href = processedVideoURL;
+            videoLink.dataset.videoUrl = processedVideoURL;  // Store the video URL in a custom attribute
+        });
+
+        // Preview the video when the link is clicked
+        function previewVideo() {
+            const videoURL = videoLink.dataset.videoUrl;
+            if (videoURL) {
+                videoElement.src = videoURL;
+                videoElement.load();
+                videoElement.play();
+            }
+        }
+    </script>
 </body>
 </html>
-
