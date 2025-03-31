@@ -23,13 +23,6 @@
             font-size: 16px;
             cursor: pointer;
         }
-        #video-link {
-            margin-top: 20px;
-            display: none;
-            font-size: 16px;
-            color: blue;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -47,10 +40,7 @@
     <input type="range" id="volume" min="0" max="2" step="0.1" value="1">
     <br>
     <button id="export">Export Video</button>
-
-    <!-- Link to preview the exported video -->
-    <p id="video-link" onclick="previewVideo()">Click here to preview and download your video</p>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@latest/ffmpeg.min.js"></script>
     <script>
         const videoElement = document.getElementById("video");
@@ -59,7 +49,6 @@
         const endInput = document.getElementById("end-time");
         const volumeInput = document.getElementById("volume");
         const exportButton = document.getElementById("export");
-        const videoLink = document.getElementById("video-link");
 
         let videoFile = null;
         let videoURL = null;
@@ -109,25 +98,16 @@
             // Retrieve output file
             const data = ffmpeg.FS("readFile", "output.mp4");
 
-            // Create a Blob and store it in a URL for preview
+            // Create a Blob and download the file
             const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
-            const processedVideoURL = URL.createObjectURL(videoBlob);
+            const videoURL = URL.createObjectURL(videoBlob);
 
-            // Show the export link and store the video URL in the link
-            videoLink.style.display = "block";
-            videoLink.href = processedVideoURL;
-            videoLink.dataset.videoUrl = processedVideoURL;  // Store the video URL in a custom attribute
+            // Create download link
+            const downloadLink = document.createElement("a");
+            downloadLink.href = videoURL;
+            downloadLink.download = "edited_video.mp4";
+            downloadLink.click();
         });
-
-        // Preview the video when the link is clicked
-        function previewVideo() {
-            const videoURL = videoLink.dataset.videoUrl;
-            if (videoURL) {
-                videoElement.src = videoURL;
-                videoElement.load();
-                videoElement.play();
-            }
-        }
     </script>
 </body>
 </html>
